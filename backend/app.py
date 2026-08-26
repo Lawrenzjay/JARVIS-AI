@@ -6,14 +6,14 @@ from flask_cors import CORS
 from dotenv import load_dotenv
 from google import genai
 
-from database import (
+from backend.database import (
     initialize_database,
     create_conversation,
     save_message,
     get_recent_messages,
     save_memory,
     get_all_memories,
-    delete_conversation,
+    delete_conversation
 )
 
 
