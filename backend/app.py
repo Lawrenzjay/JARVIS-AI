@@ -5,7 +5,6 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
 from google import genai
-
 from database import (
     initialize_database,
     create_conversation,
@@ -15,7 +14,6 @@ from database import (
     get_all_memories,
     delete_conversation
 )
-
 
 # ============================================================
 # ENVIRONMENT
