@@ -17,25 +17,13 @@ from database import (
 )
 
 
-# ==========================================
-# LOAD ENVIRONMENT VARIABLES
-# ==========================================
-
 load_dotenv()
 
-
-# ==========================================
-# CREATE FLASK APPLICATION
-# ==========================================
 
 app = Flask(__name__)
 
 CORS(app)
 
-
-# ==========================================
-# GEMINI API KEY
-# ==========================================
 
 api_key = os.getenv(
     "GEMINI_API_KEY"
@@ -48,25 +36,14 @@ if not api_key:
     )
 
 
-# ==========================================
-# CREATE GEMINI CLIENT
-# ==========================================
-
 client = genai.Client(
     api_key=api_key
 )
 
 
-# ==========================================
-# INITIALIZE DATABASE
-# ==========================================
-
 initialize_database()
 
 
-# ==========================================
-# MEMORY DETECTION
-# ==========================================
 
 def detect_memory(message):
 
@@ -74,10 +51,6 @@ def detect_memory(message):
 
     memories = []
 
-
-    # ======================================
-    # NAME
-    # ======================================
 
     name_match = re.search(
         r"\bmy name is ([a-zA-Z][a-zA-Z\s'-]{1,40})",
@@ -106,11 +79,6 @@ def detect_memory(message):
                 )
             )
 
-
-    # ======================================
-    # AGE
-    # ======================================
-
     age_match = re.search(
         r"\b(?:i am|i'm)\s+(\d{1,3})\s+years?\s+old\b",
         text,
@@ -130,9 +98,6 @@ def detect_memory(message):
         )
 
 
-    # ======================================
-    # FAVORITE COLOR
-    # ======================================
 
     color_match = re.search(
         r"\bmy favorite color is ([a-zA-Z]+)",
@@ -153,10 +118,6 @@ def detect_memory(message):
         )
 
 
-    # ======================================
-    # FAVORITE FOOD
-    # ======================================
-
     food_match = re.search(
         r"\bmy favorite food is ([^.!?]+)",
         text,
@@ -176,9 +137,6 @@ def detect_memory(message):
         )
 
 
-    # ======================================
-    # FAVORITE SPORT
-    # ======================================
 
     sport_match = re.search(
         r"\bmy favorite sport is ([^.!?]+)",
@@ -329,7 +287,7 @@ def build_memory_context():
 
 
 # ==========================================
-# CHAT
+# chat route
 # ==========================================
 
 @app.route(
@@ -339,60 +297,28 @@ def build_memory_context():
 def chat():
 
     try:
-
-        # ==================================
-        # GET JSON DATA
-        # ==================================
-
         data = request.get_json()
-
         if not data:
-
             return jsonify({
                 "error": "Request body is required."
             }), 400
-
-
-        # ==================================
-        # GET MESSAGE
-        # ==================================
-
         message = data.get(
             "message",
             ""
         ).strip()
-
-
-        # ==================================
-        # GET CONVERSATION ID
-        # ==================================
-
         conversation_id = data.get(
             "conversation_id"
         )
-
-
-        # ==================================
-        # VALIDATE MESSAGE
-        # ==================================
-
         if not message:
 
             return jsonify({
                 "error": "Message cannot be empty."
             }), 400
-
-
-        # ==================================
-        # VALIDATE CONVERSATION ID
-        # ==================================
-
         if not conversation_id:
 
             return jsonify({
                 "error": "Conversation ID is required."
             }), 400
-
 
         print()
 
@@ -400,42 +326,21 @@ def chat():
             "User:",
             message
         )
-
         print(
             "Conversation:",
             conversation_id
         )
-
-
-        # ==================================
-        # CREATE CONVERSATION
-        # ==================================
-
         create_conversation(
             conversation_id
         )
-
-
-        # ==================================
-        # SAVE USER MESSAGE
-        # ==================================
-
         save_message(
             conversation_id,
             "user",
             message
         )
-
-
-        # ==================================
-        # DETECT NEW MEMORIES
-        # ==================================
-
         detected_memories = detect_memory(
             message
         )
-
-
         for (
             category,
             key,
@@ -542,22 +447,10 @@ User:
 
 JARVIS:
 """
-
-
-        # ==================================
-        # SEND TO GEMINI
-        # ==================================
-
         response = client.models.generate_content(
             model="gemini-3.5-flash-lite",
             contents=prompt
         )
-
-
-        # ==================================
-        # GET RESPONSE TEXT
-        # ==================================
-
         ai_response = response.text
 
 
