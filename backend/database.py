@@ -1,24 +1,51 @@
 import sqlite3
+import os
 
 
-DATABASE = "jarvis.db"
+# ============================================================
+# DATABASE PATH
+# ============================================================
 
+BASE_DIR = os.path.dirname(
+    os.path.abspath(__file__)
+)
+
+DATABASE = os.path.join(
+    BASE_DIR,
+    "jarvis.db"
+)
+
+
+# ============================================================
+# DATABASE CONNECTION
+# ============================================================
 
 def get_connection():
-    connection = sqlite3.connect(DATABASE)
+
+    connection = sqlite3.connect(
+        DATABASE
+    )
+
     connection.row_factory = sqlite3.Row
+
     return connection
 
 
-# ==========================================
+# ============================================================
 # INITIALIZE DATABASE
-# ==========================================
+# ============================================================
 
 def initialize_database():
+
     connection = get_connection()
+
     cursor = connection.cursor()
 
-    # Conversations table
+
+    # ========================================================
+    # CONVERSATIONS
+    # ========================================================
+
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS conversations (
             id TEXT PRIMARY KEY,
@@ -26,7 +53,11 @@ def initialize_database():
         )
     """)
 
-    # Messages table
+
+    # ========================================================
+    # MESSAGES
+    # ========================================================
+
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS messages (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -34,12 +65,17 @@ def initialize_database():
             role TEXT NOT NULL,
             content TEXT NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
             FOREIGN KEY (conversation_id)
                 REFERENCES conversations(id)
         )
     """)
 
-    # Memories table
+
+    # ========================================================
+    # MEMORIES
+    # ========================================================
+
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS memories (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -50,34 +86,54 @@ def initialize_database():
         )
     """)
 
+
     connection.commit()
+
     connection.close()
 
 
-# ==========================================
+# ============================================================
 # CONVERSATIONS
-# ==========================================
+# ============================================================
 
-def create_conversation(conversation_id):
+def create_conversation(
+    conversation_id
+):
+
     connection = get_connection()
+
     cursor = connection.cursor()
+
 
     cursor.execute("""
-        INSERT OR IGNORE INTO conversations (id)
+        INSERT OR IGNORE INTO conversations (
+            id
+        )
         VALUES (?)
-    """, (conversation_id,))
+    """, (
+        conversation_id,
+    ))
+
 
     connection.commit()
+
     connection.close()
 
 
-# ==========================================
+# ============================================================
 # SAVE MESSAGE
-# ==========================================
+# ============================================================
 
-def save_message(conversation_id, role, content):
+def save_message(
+    conversation_id,
+    role,
+    content
+):
+
     connection = get_connection()
+
     cursor = connection.cursor()
+
 
     cursor.execute("""
         INSERT INTO messages (
@@ -92,20 +148,30 @@ def save_message(conversation_id, role, content):
         content
     ))
 
+
     connection.commit()
+
     connection.close()
 
 
-# ==========================================
+# ============================================================
 # GET RECENT MESSAGES
-# ==========================================
+# ============================================================
 
-def get_recent_messages(conversation_id, limit=20):
+def get_recent_messages(
+    conversation_id,
+    limit=20
+):
+
     connection = get_connection()
+
     cursor = connection.cursor()
 
+
     cursor.execute("""
-        SELECT role, content
+        SELECT
+            role,
+            content
         FROM messages
         WHERE conversation_id = ?
         ORDER BY id DESC
@@ -115,12 +181,17 @@ def get_recent_messages(conversation_id, limit=20):
         limit
     ))
 
+
     messages = cursor.fetchall()
+
     connection.close()
 
-    # Reverse them so Gemini receives
-    # the conversation in chronological order.
+
+    # Reverse messages so Gemini receives
+    # chronological conversation history.
+
     messages.reverse()
+
 
     return [
         {
@@ -131,23 +202,35 @@ def get_recent_messages(conversation_id, limit=20):
     ]
 
 
-# ==========================================
+# ============================================================
 # GET ALL MESSAGES
-# ==========================================
+# ============================================================
 
-def get_messages(conversation_id):
+def get_messages(
+    conversation_id
+):
+
     connection = get_connection()
+
     cursor = connection.cursor()
 
+
     cursor.execute("""
-        SELECT role, content
+        SELECT
+            role,
+            content
         FROM messages
         WHERE conversation_id = ?
         ORDER BY id ASC
-    """, (conversation_id,))
+    """, (
+        conversation_id,
+    ))
+
 
     messages = cursor.fetchall()
+
     connection.close()
+
 
     return [
         {
@@ -158,15 +241,25 @@ def get_messages(conversation_id):
     ]
 
 
-# ==========================================
-# MEMORY
-# ==========================================
+# ============================================================
+# SAVE MEMORY
+# ============================================================
 
-def save_memory(category, key, value):
+def save_memory(
+    category,
+    key,
+    value
+):
+
     connection = get_connection()
+
     cursor = connection.cursor()
 
-    # Check if this exact memory already exists
+
+    # ========================================================
+    # CHECK FOR EXISTING MEMORY
+    # ========================================================
+
     cursor.execute("""
         SELECT id
         FROM memories
@@ -179,9 +272,16 @@ def save_memory(category, key, value):
         value
     ))
 
+
     existing = cursor.fetchone()
 
+
+    # ========================================================
+    # INSERT NEW MEMORY
+    # ========================================================
+
     if not existing:
+
         cursor.execute("""
             INSERT INTO memories (
                 category,
@@ -195,22 +295,37 @@ def save_memory(category, key, value):
             value
         ))
 
+
     connection.commit()
+
     connection.close()
 
 
+# ============================================================
+# GET ALL MEMORIES
+# ============================================================
+
 def get_all_memories():
+
     connection = get_connection()
+
     cursor = connection.cursor()
 
+
     cursor.execute("""
-        SELECT category, key, value
+        SELECT
+            category,
+            key,
+            value
         FROM memories
         ORDER BY id ASC
     """)
 
+
     memories = cursor.fetchall()
+
     connection.close()
+
 
     return [
         {
@@ -222,23 +337,43 @@ def get_all_memories():
     ]
 
 
-# ==========================================
+# ============================================================
 # DELETE CONVERSATION
-# ==========================================
+# ============================================================
 
-def delete_conversation(conversation_id):
+def delete_conversation(
+    conversation_id
+):
+
     connection = get_connection()
+
     cursor = connection.cursor()
+
+
+    # ========================================================
+    # DELETE MESSAGES
+    # ========================================================
 
     cursor.execute("""
         DELETE FROM messages
         WHERE conversation_id = ?
-    """, (conversation_id,))
+    """, (
+        conversation_id,
+    ))
+
+
+    # ========================================================
+    # DELETE CONVERSATION
+    # ========================================================
 
     cursor.execute("""
         DELETE FROM conversations
         WHERE id = ?
-    """, (conversation_id,))
+    """, (
+        conversation_id,
+    ))
+
 
     connection.commit()
+
     connection.close()
