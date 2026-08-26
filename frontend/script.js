@@ -30,7 +30,7 @@ const statusText =
 // ==========================================
 
 const FLASK_BASE_URL =
-    "https://jarvis-ai-g3.vercel.app";
+    "https://jarvis-ai-g3-qqfkgur50-lawrenzjays-projects.vercel.app";
 
 
 const CHAT_URL =
