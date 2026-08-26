@@ -30,7 +30,7 @@ const statusText =
 // ==========================================
 
 const FLASK_BASE_URL =
-    "https://jarvis-ai-black-nine.vercel.app";
+    "https://jarvis-ai-g3.vercel.app";
 
 const CHAT_URL = `${FLASK_BASE_URL}/chat`;
 const CLEAR_URL = `${FLASK_BASE_URL}/clear`;
