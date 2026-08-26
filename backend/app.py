@@ -13,26 +13,35 @@ from database import (
     get_recent_messages,
     save_memory,
     get_all_memories,
-    delete_conversation
+    delete_conversation,
 )
 
 
+# ============================================================
+# ENVIRONMENT
+# ============================================================
+
 load_dotenv()
 
+
+# ============================================================
+# FLASK APP
+# ============================================================
 
 app = Flask(__name__)
 
 CORS(app)
 
 
-api_key = os.getenv(
-    "GEMINI_API_KEY"
-)
+# ============================================================
+# GEMINI
+# ============================================================
+
+api_key = os.getenv("GEMINI_API_KEY")
 
 if not api_key:
-
     raise RuntimeError(
-        "GEMINI_API_KEY is not set in the .env file"
+        "GEMINI_API_KEY is not configured."
     )
 
 
@@ -41,9 +50,16 @@ client = genai.Client(
 )
 
 
+# ============================================================
+# DATABASE
+# ============================================================
+
 initialize_database()
 
 
+# ============================================================
+# MEMORY DETECTION
+# ============================================================
 
 def detect_memory(message):
 
@@ -51,6 +67,10 @@ def detect_memory(message):
 
     memories = []
 
+
+    # ========================================================
+    # NAME
+    # ========================================================
 
     name_match = re.search(
         r"\bmy name is ([a-zA-Z][a-zA-Z\s'-]{1,40})",
@@ -79,6 +99,11 @@ def detect_memory(message):
                 )
             )
 
+
+    # ========================================================
+    # AGE
+    # ========================================================
+
     age_match = re.search(
         r"\b(?:i am|i'm)\s+(\d{1,3})\s+years?\s+old\b",
         text,
@@ -98,6 +123,9 @@ def detect_memory(message):
         )
 
 
+    # ========================================================
+    # FAVORITE COLOR
+    # ========================================================
 
     color_match = re.search(
         r"\bmy favorite color is ([a-zA-Z]+)",
@@ -118,6 +146,10 @@ def detect_memory(message):
         )
 
 
+    # ========================================================
+    # FAVORITE FOOD
+    # ========================================================
+
     food_match = re.search(
         r"\bmy favorite food is ([^.!?]+)",
         text,
@@ -137,6 +169,9 @@ def detect_memory(message):
         )
 
 
+    # ========================================================
+    # FAVORITE SPORT
+    # ========================================================
 
     sport_match = re.search(
         r"\bmy favorite sport is ([^.!?]+)",
@@ -157,9 +192,9 @@ def detect_memory(message):
         )
 
 
-    # ======================================
+    # ========================================================
     # LIKES
-    # ======================================
+    # ========================================================
 
     likes_match = re.search(
         r"\bi like ([^.!?]+)",
@@ -178,13 +213,13 @@ def detect_memory(message):
                     "preferences",
                     "likes",
                     liked_item
+                )
             )
-        )
 
 
-    # ======================================
+    # ========================================================
     # DISLIKES
-    # ======================================
+    # ========================================================
 
     dislikes_match = re.search(
         r"\bi (?:don't like|do not like|hate) ([^.!?]+)",
@@ -203,13 +238,13 @@ def detect_memory(message):
                     "preferences",
                     "dislikes",
                     disliked_item
+                )
             )
-        )
 
 
-    # ======================================
+    # ========================================================
     # LOCATION
-    # ======================================
+    # ========================================================
 
     location_match = re.search(
         r"\bi live in ([^.!?]+)",
@@ -230,9 +265,9 @@ def detect_memory(message):
         )
 
 
-    # ======================================
+    # ========================================================
     # SCHOOL
-    # ======================================
+    # ========================================================
 
     school_match = re.search(
         r"\bi (?:study|go to) (?:at )?([^.!?]+)",
@@ -256,9 +291,9 @@ def detect_memory(message):
     return memories
 
 
-# ==========================================
-# FORMAT MEMORIES FOR GEMINI
-# ==========================================
+# ============================================================
+# BUILD MEMORY CONTEXT
+# ============================================================
 
 def build_memory_context():
 
@@ -269,7 +304,8 @@ def build_memory_context():
         return "No stored memories yet."
 
 
-    memory_text = ""
+    memory_lines = []
+
 
     for memory in memories:
 
@@ -277,70 +313,117 @@ def build_memory_context():
         key = memory["key"]
         value = memory["value"]
 
-        memory_text += (
-            f"- {category} | "
-            f"{key}: {value}\n"
+        memory_lines.append(
+            f"- {category} | {key}: {value}"
         )
 
 
-    return memory_text
+    return "\n".join(memory_lines)
 
 
-# ==========================================
-# chat route
-# ==========================================
+# ============================================================
+# HEALTH CHECK
+# ============================================================
 
 @app.route(
-    "/chat",
+    "/api/health",
+    methods=["GET"]
+)
+def health():
+
+    return jsonify({
+        "status": "ok",
+        "service": "JARVIS API"
+    })
+
+
+# ============================================================
+# CHAT
+# ============================================================
+
+@app.route(
+    "/api/chat",
     methods=["POST"]
 )
 def chat():
 
     try:
-        data = request.get_json()
+
+        data = request.get_json(
+            silent=True
+        )
+
+
         if not data:
+
             return jsonify({
                 "error": "Request body is required."
             }), 400
+
+
         message = data.get(
             "message",
             ""
         ).strip()
+
+
         conversation_id = data.get(
             "conversation_id"
         )
+
+
+        # ====================================================
+        # VALIDATION
+        # ====================================================
+
         if not message:
 
             return jsonify({
                 "error": "Message cannot be empty."
             }), 400
+
+
         if not conversation_id:
 
             return jsonify({
                 "error": "Conversation ID is required."
             }), 400
 
-        print()
 
-        print(
-            "User:",
-            message
-        )
-        print(
-            "Conversation:",
-            conversation_id
-        )
+        print()
+        print("User:", message)
+        print("Conversation:", conversation_id)
+
+
+        # ====================================================
+        # CREATE CONVERSATION
+        # ====================================================
+
         create_conversation(
             conversation_id
         )
+
+
+        # ====================================================
+        # SAVE USER MESSAGE
+        # ====================================================
+
         save_message(
             conversation_id,
             "user",
             message
         )
+
+
+        # ====================================================
+        # DETECT MEMORIES
+        # ====================================================
+
         detected_memories = detect_memory(
             message
         )
+
+
         for (
             category,
             key,
@@ -353,17 +436,20 @@ def chat():
                 value
             )
 
+
             print(
-                f"Memory saved: "
-                f"{category} → "
-                f"{key} → "
-                f"{value}"
+                "Memory saved:",
+                category,
+                "→",
+                key,
+                "→",
+                value
             )
 
 
-        # ==================================
+        # ====================================================
         # GET CONVERSATION HISTORY
-        # ==================================
+        # ====================================================
 
         history = get_recent_messages(
             conversation_id,
@@ -371,46 +457,50 @@ def chat():
         )
 
 
-        # ==================================
+        # ====================================================
         # BUILD CONVERSATION TEXT
-        # ==================================
+        # ====================================================
 
-        conversation_text = ""
+        conversation_lines = []
 
 
         for item in history:
 
             role = item["role"]
-
             content = item["content"]
 
 
             if role == "user":
 
-                conversation_text += (
-                    f"User: {content}\n"
+                conversation_lines.append(
+                    f"User: {content}"
                 )
 
 
             elif role == "assistant":
 
-                conversation_text += (
-                    f"JARVIS: {content}\n"
+                conversation_lines.append(
+                    f"JARVIS: {content}"
                 )
 
 
-        # ==================================
-        # GET LONG-TERM MEMORY
-        # ==================================
+        conversation_text = "\n".join(
+            conversation_lines
+        )
+
+
+        # ====================================================
+        # LONG-TERM MEMORY
+        # ====================================================
 
         memory_context = (
             build_memory_context()
         )
 
 
-        # ==================================
-        # JARVIS SYSTEM INSTRUCTIONS
-        # ==================================
+        # ====================================================
+        # JARVIS SYSTEM PROMPT
+        # ====================================================
 
         prompt = f"""
 You are JARVIS, a personal AI assistant.
@@ -447,16 +537,31 @@ User:
 
 JARVIS:
 """
+
+
+        # ====================================================
+        # GEMINI REQUEST
+        # ====================================================
+
         response = client.models.generate_content(
             model="gemini-3.5-flash-lite",
             contents=prompt
         )
+
+
         ai_response = response.text
 
 
-        # ==================================
-        # SAVE JARVIS RESPONSE
-        # ==================================
+        if not ai_response:
+
+            return jsonify({
+                "error": "Gemini returned an empty response."
+            }), 500
+
+
+        # ====================================================
+        # SAVE AI RESPONSE
+        # ====================================================
 
         save_message(
             conversation_id,
@@ -465,19 +570,18 @@ JARVIS:
         )
 
 
-        # ==================================
-        # RETURN RESPONSE
-        # ==================================
+        # ====================================================
+        # LOG
+        # ====================================================
 
         print()
-
-        print(
-            "JARVIS:",
-            ai_response
-        )
-
+        print("JARVIS:", ai_response)
         print()
 
+
+        # ====================================================
+        # RESPONSE
+        # ====================================================
 
         return jsonify({
 
@@ -492,36 +596,37 @@ JARVIS:
     except Exception as error:
 
         print()
-
         print(
-            "Gemini error:",
+            "Chat error:",
             error
         )
-
         print()
 
 
         return jsonify({
 
             "error":
-                str(error)
+                "An internal server error occurred."
 
         }), 500
 
 
-# ==========================================
+# ============================================================
 # CLEAR CONVERSATION
-# ==========================================
+# ============================================================
 
 @app.route(
-    "/clear",
+    "/api/clear",
     methods=["POST"]
 )
 def clear_conversation():
 
     try:
 
-        data = request.get_json()
+        data = request.get_json(
+            silent=True
+        )
+
 
         if not data:
 
@@ -542,9 +647,9 @@ def clear_conversation():
             }), 400
 
 
-        # ==================================
-        # DELETE CONVERSATION ONLY
-        # ==================================
+        # ====================================================
+        # DELETE CONVERSATION
+        # ====================================================
 
         delete_conversation(
             conversation_id
@@ -552,12 +657,10 @@ def clear_conversation():
 
 
         print()
-
         print(
             "Conversation cleared:",
             conversation_id
         )
-
         print()
 
 
@@ -568,27 +671,30 @@ def clear_conversation():
 
     except Exception as error:
 
+        print()
         print(
             "Clear error:",
             error
         )
+        print()
 
 
         return jsonify({
 
             "error":
-                str(error)
+                "An internal server error occurred."
 
         }), 500
 
 
-# ==========================================
-# RUN FLASK
-# ==========================================
+# ============================================================
+# LOCAL DEVELOPMENT
+# ============================================================
 
 if __name__ == "__main__":
 
     app.run(
         debug=True,
+        host="0.0.0.0",
         port=5000
     )
