@@ -23,7 +23,8 @@ DATABASE = os.path.join(
 def get_connection():
 
     connection = sqlite3.connect(
-        DATABASE
+        DATABASE,
+        timeout=30
     )
 
     connection.row_factory = sqlite3.Row
@@ -39,57 +40,85 @@ def initialize_database():
 
     connection = get_connection()
 
-    cursor = connection.cursor()
+    try:
 
+        cursor = connection.cursor()
 
-    # ========================================================
-    # CONVERSATIONS
-    # ========================================================
+        # ====================================================
+        # CONVERSATIONS
+        # ====================================================
 
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS conversations (
-            id TEXT PRIMARY KEY,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS conversations (
+                id TEXT PRIMARY KEY,
+                created_at TIMESTAMP
+                    DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
 
+        # ====================================================
+        # MESSAGES
+        # ====================================================
 
-    # ========================================================
-    # MESSAGES
-    # ========================================================
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS messages (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
 
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS messages (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            conversation_id TEXT NOT NULL,
-            role TEXT NOT NULL,
-            content TEXT NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                conversation_id TEXT NOT NULL,
 
-            FOREIGN KEY (conversation_id)
-                REFERENCES conversations(id)
-        )
-    """)
+                role TEXT NOT NULL,
 
+                content TEXT NOT NULL,
 
-    # ========================================================
-    # MEMORIES
-    # ========================================================
+                created_at TIMESTAMP
+                    DEFAULT CURRENT_TIMESTAMP,
 
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS memories (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            category TEXT NOT NULL,
-            key TEXT NOT NULL,
-            value TEXT NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
+                FOREIGN KEY (conversation_id)
+                    REFERENCES conversations(id)
+                    ON DELETE CASCADE
+            )
+        """)
 
+        # ====================================================
+        # MEMORIES
+        # ====================================================
 
-    connection.commit()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS memories (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
 
-    connection.close()
+                category TEXT NOT NULL,
+
+                key TEXT NOT NULL,
+
+                value TEXT NOT NULL,
+
+                created_at TIMESTAMP
+                    DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+        # ====================================================
+        # INDEXES
+        # ====================================================
+
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS
+            idx_messages_conversation
+            ON messages(conversation_id)
+        """)
+
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS
+            idx_memories_category_key
+            ON memories(category, key)
+        """)
+
+        connection.commit()
+
+    finally:
+
+        connection.close()
 
 
 # ============================================================
@@ -102,22 +131,24 @@ def create_conversation(
 
     connection = get_connection()
 
-    cursor = connection.cursor()
+    try:
 
+        cursor = connection.cursor()
 
-    cursor.execute("""
-        INSERT OR IGNORE INTO conversations (
-            id
-        )
-        VALUES (?)
-    """, (
-        conversation_id,
-    ))
+        cursor.execute("""
+            INSERT OR IGNORE INTO conversations (
+                id
+            )
+            VALUES (?)
+        """, (
+            conversation_id,
+        ))
 
+        connection.commit()
 
-    connection.commit()
+    finally:
 
-    connection.close()
+        connection.close()
 
 
 # ============================================================
@@ -132,26 +163,28 @@ def save_message(
 
     connection = get_connection()
 
-    cursor = connection.cursor()
+    try:
 
+        cursor = connection.cursor()
 
-    cursor.execute("""
-        INSERT INTO messages (
+        cursor.execute("""
+            INSERT INTO messages (
+                conversation_id,
+                role,
+                content
+            )
+            VALUES (?, ?, ?)
+        """, (
             conversation_id,
             role,
             content
-        )
-        VALUES (?, ?, ?)
-    """, (
-        conversation_id,
-        role,
-        content
-    ))
+        ))
 
+        connection.commit()
 
-    connection.commit()
+    finally:
 
-    connection.close()
+        connection.close()
 
 
 # ============================================================
@@ -165,33 +198,34 @@ def get_recent_messages(
 
     connection = get_connection()
 
-    cursor = connection.cursor()
+    try:
 
+        cursor = connection.cursor()
 
-    cursor.execute("""
-        SELECT
-            role,
-            content
-        FROM messages
-        WHERE conversation_id = ?
-        ORDER BY id DESC
-        LIMIT ?
-    """, (
-        conversation_id,
-        limit
-    ))
+        cursor.execute("""
+            SELECT
+                role,
+                content
+            FROM messages
+            WHERE conversation_id = ?
+            ORDER BY id DESC
+            LIMIT ?
+        """, (
+            conversation_id,
+            limit
+        ))
 
+        messages = cursor.fetchall()
 
-    messages = cursor.fetchall()
+    finally:
 
-    connection.close()
+        connection.close()
 
-
-    # Reverse messages so Gemini receives
-    # chronological conversation history.
+    # ========================================================
+    # REVERSE INTO CHRONOLOGICAL ORDER
+    # ========================================================
 
     messages.reverse()
-
 
     return [
         {
@@ -212,25 +246,26 @@ def get_messages(
 
     connection = get_connection()
 
-    cursor = connection.cursor()
+    try:
 
+        cursor = connection.cursor()
 
-    cursor.execute("""
-        SELECT
-            role,
-            content
-        FROM messages
-        WHERE conversation_id = ?
-        ORDER BY id ASC
-    """, (
-        conversation_id,
-    ))
+        cursor.execute("""
+            SELECT
+                role,
+                content
+            FROM messages
+            WHERE conversation_id = ?
+            ORDER BY id ASC
+        """, (
+            conversation_id,
+        ))
 
+        messages = cursor.fetchall()
 
-    messages = cursor.fetchall()
+    finally:
 
-    connection.close()
-
+        connection.close()
 
     return [
         {
@@ -253,52 +288,52 @@ def save_memory(
 
     connection = get_connection()
 
-    cursor = connection.cursor()
+    try:
 
+        cursor = connection.cursor()
 
-    # ========================================================
-    # CHECK FOR EXISTING MEMORY
-    # ========================================================
-
-    cursor.execute("""
-        SELECT id
-        FROM memories
-        WHERE category = ?
-        AND key = ?
-        AND value = ?
-    """, (
-        category,
-        key,
-        value
-    ))
-
-
-    existing = cursor.fetchone()
-
-
-    # ========================================================
-    # INSERT NEW MEMORY
-    # ========================================================
-
-    if not existing:
+        # ====================================================
+        # CHECK EXISTING MEMORY
+        # ====================================================
 
         cursor.execute("""
-            INSERT INTO memories (
-                category,
-                key,
-                value
-            )
-            VALUES (?, ?, ?)
+            SELECT id
+            FROM memories
+            WHERE category = ?
+            AND key = ?
+            AND value = ?
         """, (
             category,
             key,
             value
         ))
 
+        existing = cursor.fetchone()
 
-    connection.commit()
+        # ====================================================
+        # INSERT MEMORY
+        # ====================================================
 
-    connection.close()
+        if not existing:
+
+            cursor.execute("""
+                INSERT INTO memories (
+                    category,
+                    key,
+                    value
+                )
+                VALUES (?, ?, ?)
+            """, (
+                category,
+                key,
+                value
+            ))
+
+        connection.commit()
+
+    finally:
+
+        connection.close()
 
 
 # ============================================================
@@ -309,23 +344,24 @@ def get_all_memories():
 
     connection = get_connection()
 
-    cursor = connection.cursor()
+    try:
 
+        cursor = connection.cursor()
 
-    cursor.execute("""
-        SELECT
-            category,
-            key,
-            value
-        FROM memories
-        ORDER BY id ASC
-    """)
+        cursor.execute("""
+            SELECT
+                category,
+                key,
+                value
+            FROM memories
+            ORDER BY id ASC
+        """)
 
+        memories = cursor.fetchall()
 
-    memories = cursor.fetchall()
+    finally:
 
-    connection.close()
-
+        connection.close()
 
     return [
         {
@@ -347,33 +383,34 @@ def delete_conversation(
 
     connection = get_connection()
 
-    cursor = connection.cursor()
+    try:
 
+        cursor = connection.cursor()
 
-    # ========================================================
-    # DELETE MESSAGES
-    # ========================================================
+        # ====================================================
+        # DELETE MESSAGES
+        # ====================================================
 
-    cursor.execute("""
-        DELETE FROM messages
-        WHERE conversation_id = ?
-    """, (
-        conversation_id,
-    ))
+        cursor.execute("""
+            DELETE FROM messages
+            WHERE conversation_id = ?
+        """, (
+            conversation_id,
+        ))
 
+        # ====================================================
+        # DELETE CONVERSATION
+        # ====================================================
 
-    # ========================================================
-    # DELETE CONVERSATION
-    # ========================================================
+        cursor.execute("""
+            DELETE FROM conversations
+            WHERE id = ?
+        """, (
+            conversation_id,
+        ))
 
-    cursor.execute("""
-        DELETE FROM conversations
-        WHERE id = ?
-    """, (
-        conversation_id,
-    ))
+        connection.commit()
 
+    finally:
 
-    connection.commit()
-
-    connection.close()
+        connection.close()
