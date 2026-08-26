@@ -13,7 +13,7 @@ from backend.database import (
     get_recent_messages,
     save_memory,
     get_all_memories,
-    delete_conversation
+    delete_conversation,
 )
 
 
@@ -34,7 +34,7 @@ CORS(app)
 
 
 # ============================================================
-# GEMINI
+# GEMINI CONFIGURATION
 # ============================================================
 
 api_key = os.getenv("GEMINI_API_KEY")
@@ -51,7 +51,7 @@ client = genai.Client(
 
 
 # ============================================================
-# DATABASE
+# DATABASE INITIALIZATION
 # ============================================================
 
 initialize_database()
@@ -349,6 +349,10 @@ def chat():
 
     try:
 
+        # ====================================================
+        # GET REQUEST DATA
+        # ====================================================
+
         data = request.get_json(
             silent=True
         )
@@ -373,7 +377,7 @@ def chat():
 
 
         # ====================================================
-        # VALIDATION
+        # VALIDATE MESSAGE
         # ====================================================
 
         if not message:
@@ -382,6 +386,10 @@ def chat():
                 "error": "Message cannot be empty."
             }), 400
 
+
+        # ====================================================
+        # VALIDATE CONVERSATION ID
+        # ====================================================
 
         if not conversation_id:
 
@@ -393,6 +401,7 @@ def chat():
         print()
         print("User:", message)
         print("Conversation:", conversation_id)
+        print()
 
 
         # ====================================================
@@ -458,7 +467,7 @@ def chat():
 
 
         # ====================================================
-        # BUILD CONVERSATION TEXT
+        # BUILD CONVERSATION CONTEXT
         # ====================================================
 
         conversation_lines = []
@@ -490,7 +499,7 @@ def chat():
 
 
         # ====================================================
-        # LONG-TERM MEMORY
+        # GET LONG-TERM MEMORY
         # ====================================================
 
         memory_context = (
@@ -540,7 +549,7 @@ JARVIS:
 
 
         # ====================================================
-        # GEMINI REQUEST
+        # SEND REQUEST TO GEMINI
         # ====================================================
 
         response = client.models.generate_content(
@@ -548,6 +557,10 @@ JARVIS:
             contents=prompt
         )
 
+
+        # ====================================================
+        # GET AI RESPONSE
+        # ====================================================
 
         ai_response = response.text
 
@@ -560,7 +573,7 @@ JARVIS:
 
 
         # ====================================================
-        # SAVE AI RESPONSE
+        # SAVE JARVIS RESPONSE
         # ====================================================
 
         save_message(
@@ -571,7 +584,7 @@ JARVIS:
 
 
         # ====================================================
-        # LOG
+        # LOG RESPONSE
         # ====================================================
 
         print()
@@ -580,7 +593,7 @@ JARVIS:
 
 
         # ====================================================
-        # RESPONSE
+        # RETURN RESPONSE
         # ====================================================
 
         return jsonify({
@@ -595,6 +608,10 @@ JARVIS:
 
     except Exception as error:
 
+        # ====================================================
+        # SERVER LOG
+        # ====================================================
+
         print()
         print(
             "Chat error:",
@@ -602,6 +619,10 @@ JARVIS:
         )
         print()
 
+
+        # ====================================================
+        # USER RESPONSE
+        # ====================================================
 
         return jsonify({
 
@@ -623,6 +644,10 @@ def clear_conversation():
 
     try:
 
+        # ====================================================
+        # GET REQUEST DATA
+        # ====================================================
+
         data = request.get_json(
             silent=True
         )
@@ -639,6 +664,10 @@ def clear_conversation():
             "conversation_id"
         )
 
+
+        # ====================================================
+        # VALIDATE CONVERSATION ID
+        # ====================================================
 
         if not conversation_id:
 
@@ -664,12 +693,20 @@ def clear_conversation():
         print()
 
 
+        # ====================================================
+        # RETURN SUCCESS
+        # ====================================================
+
         return jsonify({
             "success": True
         })
 
 
     except Exception as error:
+
+        # ====================================================
+        # SERVER LOG
+        # ====================================================
 
         print()
         print(
@@ -678,6 +715,10 @@ def clear_conversation():
         )
         print()
 
+
+        # ====================================================
+        # USER RESPONSE
+        # ====================================================
 
         return jsonify({
 
