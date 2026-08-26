@@ -13,10 +13,38 @@ const statusText = document.getElementById("statusText");
 // ==========================================
 // FLASK BACKEND
 // ==========================================
-const FLASK_BASE_URL = "/api";
+const API_URL = "https://jarvis-ai-g3.vercel.app";
 
-const CHAT_URL = `${FLASK_BASE_URL}/chat`;
-const CLEAR_URL = `${FLASK_BASE_URL}/clear`;
+const response = await fetch(
+    `${API_URL}/api/chat`,
+    {
+        method: "POST",
+
+        headers: {
+            "Content-Type": "application/json"
+        },
+
+        body: JSON.stringify({
+            message: message,
+            conversation_id: conversationId
+        })
+    }
+);
+
+await fetch(
+    `${API_URL}/api/clear`,
+    {
+        method: "POST",
+
+        headers: {
+            "Content-Type": "application/json"
+        },
+
+        body: JSON.stringify({
+            conversation_id: conversationId
+        })
+    }
+);
 
 // ==========================================
 // STORAGE KEYS
