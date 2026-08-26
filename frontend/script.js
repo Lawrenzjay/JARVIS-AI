@@ -13,8 +13,7 @@ const statusText = document.getElementById("statusText");
 // ==========================================
 // FLASK BACKEND
 // ==========================================
-
-const FLASK_BASE_URL = "https://jarvis-ai-g3.vercel.app";
+const FLASK_BASE_URL = "/api";
 
 const CHAT_URL = `${FLASK_BASE_URL}/chat`;
 const CLEAR_URL = `${FLASK_BASE_URL}/clear`;
