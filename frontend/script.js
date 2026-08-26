@@ -1,13 +1,3 @@
-// ==========================================
-// JARVIS FRONTEND
-// FULL SCRIPT
-// ==========================================
-
-
-// ==========================================
-// ELEMENTS
-// ==========================================
-
 const userInput = document.getElementById("userInput");
 const sendButton = document.getElementById("sendButton");
 const chatMessages = document.getElementById("chatMessages");
@@ -40,14 +30,10 @@ const statusText =
 // ==========================================
 
 const FLASK_BASE_URL =
-    "http://127.0.0.1:5000";
+    "https://jarvis-ai-black-nine.vercel.app";
 
-const CHAT_URL =
-    `${FLASK_BASE_URL}/chat`;
-
-const CLEAR_URL =
-    `${FLASK_BASE_URL}/clear`;
-
+const CHAT_URL = `${FLASK_BASE_URL}/chat`;
+const CLEAR_URL = `${FLASK_BASE_URL}/clear`;
 
 // ==========================================
 // STORAGE KEYS
@@ -1977,88 +1963,47 @@ function removeTypingIndicator() {
 async function sendMessage(
     speakResponse = false
 ) {
-
     const message =
         userInput.value.trim();
-
-
     if (!message) {
-
         return;
-
     }
-
-
     if (isSendingMessage) {
 
         return;
-
     }
-
-
     ensureActiveConversation();
-
-
-    // Add user message
-
     addMessage(
         message,
         "user"
     );
-
-
     userInput.value =
         "";
-
-
     isSendingMessage =
         true;
-
-
     userInput.disabled =
         true;
-
-
     if (sendButton) {
 
         sendButton.disabled =
             true;
-
     }
-
-
     if (micButton) {
 
         micButton.disabled =
             true;
-
     }
-
-
     shouldKeepListening =
         false;
-
-
     isCommandMode =
         false;
-
-
     stopRecognition();
-
-
     showTypingIndicator();
-
-
     statusText.textContent =
         "Thinking";
-
-
     voiceStatus.textContent =
         "JARVIS is thinking...";
-
-
     try {
-
         const response =
             await fetch(
                 CHAT_URL,
