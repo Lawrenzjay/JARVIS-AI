@@ -5,6 +5,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
 from google import genai
+
 from database import (
     initialize_database,
     create_conversation,
@@ -15,32 +16,53 @@ from database import (
     delete_conversation
 )
 
+
 # ============================================================
 # ENVIRONMENT
 # ============================================================
 
-load_dotenv()
+BASE_DIR = os.path.dirname(
+    os.path.abspath(__file__)
+)
+
+ENV_FILE = os.path.join(
+    BASE_DIR,
+    ".env"
+)
+
+load_dotenv(
+    ENV_FILE
+)
 
 
 # ============================================================
 # FLASK APP
 # ============================================================
 
-app = Flask(__name__)
+app = Flask(
+    __name__
+)
 
-CORS(app)
+CORS(
+    app
+)
 
 
 # ============================================================
 # GEMINI CONFIGURATION
 # ============================================================
 
-api_key = os.getenv("GEMINI_API_KEY")
+api_key = os.getenv(
+    "GEMINI_API_KEY"
+)
 
 if not api_key:
+
     raise RuntimeError(
-        "GEMINI_API_KEY is not configured."
+        "GEMINI_API_KEY is not configured. "
+        "Please add GEMINI_API_KEY to your .env file."
     )
+
 
 client = genai.Client(
     api_key=api_key
@@ -52,9 +74,15 @@ client = genai.Client(
 # ============================================================
 
 try:
+
     initialize_database()
+
 except Exception as error:
-    print("Database initialization warning:", error)
+
+    print(
+        "Database initialization warning:",
+        error
+    )
 
 
 # ============================================================
@@ -66,6 +94,7 @@ def detect_memory(message):
     text = message.strip()
 
     memories = []
+
 
     # ========================================================
     # NAME
@@ -98,6 +127,7 @@ def detect_memory(message):
                 )
             )
 
+
     # ========================================================
     # AGE
     # ========================================================
@@ -119,6 +149,7 @@ def detect_memory(message):
                 age
             )
         )
+
 
     # ========================================================
     # FAVORITE COLOR
@@ -142,6 +173,7 @@ def detect_memory(message):
             )
         )
 
+
     # ========================================================
     # FAVORITE FOOD
     # ========================================================
@@ -164,6 +196,7 @@ def detect_memory(message):
             )
         )
 
+
     # ========================================================
     # FAVORITE SPORT
     # ========================================================
@@ -185,6 +218,7 @@ def detect_memory(message):
                 sport
             )
         )
+
 
     # ========================================================
     # LIKES
@@ -210,6 +244,7 @@ def detect_memory(message):
                 )
             )
 
+
     # ========================================================
     # DISLIKES
     # ========================================================
@@ -234,6 +269,7 @@ def detect_memory(message):
                 )
             )
 
+
     # ========================================================
     # LOCATION
     # ========================================================
@@ -255,6 +291,7 @@ def detect_memory(message):
                 location
             )
         )
+
 
     # ========================================================
     # SCHOOL
@@ -278,6 +315,7 @@ def detect_memory(message):
             )
         )
 
+
     return memories
 
 
@@ -288,7 +326,9 @@ def detect_memory(message):
 def build_memory_context():
 
     try:
+
         memories = get_all_memories()
+
     except Exception as error:
 
         print(
@@ -298,11 +338,14 @@ def build_memory_context():
 
         return "No stored memories yet."
 
+
     if not memories:
 
         return "No stored memories yet."
 
+
     memory_lines = []
+
 
     for memory in memories:
 
@@ -314,7 +357,10 @@ def build_memory_context():
             f"- {category} | {key}: {value}"
         )
 
-    return "\n".join(memory_lines)
+
+    return "\n".join(
+        memory_lines
+    )
 
 
 # ============================================================
@@ -328,8 +374,11 @@ def build_memory_context():
 def health():
 
     return jsonify({
+
         "status": "ok",
+
         "service": "JARVIS API"
+
     })
 
 
@@ -344,9 +393,13 @@ def health():
 def api_home():
 
     return jsonify({
+
         "status": "online",
+
         "service": "JARVIS API",
+
         "message": "JARVIS backend is running."
+
     })
 
 
@@ -370,48 +423,67 @@ def chat():
             silent=True
         )
 
+
         if not data:
 
             return jsonify({
-                "error": "Request body is required."
+
+                "error":
+                    "Request body is required."
+
             }), 400
+
 
         message = data.get(
             "message",
             ""
         ).strip()
 
+
         conversation_id = data.get(
             "conversation_id"
         )
 
+
         # ====================================================
-        # VALIDATE MESSAGE
+        # VALIDATION
         # ====================================================
 
         if not message:
 
             return jsonify({
-                "error": "Message cannot be empty."
+
+                "error":
+                    "Message cannot be empty."
+
             }), 400
 
-        # ====================================================
-        # VALIDATE CONVERSATION ID
-        # ====================================================
 
         if not conversation_id:
 
             return jsonify({
-                "error": "Conversation ID is required."
+
+                "error":
+                    "Conversation ID is required."
+
             }), 400
+
+
+        # ====================================================
+        # LOG REQUEST
+        # ====================================================
 
         print()
         print("========================================")
         print("JARVIS REQUEST")
         print("========================================")
         print("User:", message)
-        print("Conversation:", conversation_id)
+        print(
+            "Conversation:",
+            conversation_id
+        )
         print()
+
 
         # ====================================================
         # CREATE CONVERSATION
@@ -420,6 +492,7 @@ def chat():
         create_conversation(
             conversation_id
         )
+
 
         # ====================================================
         # SAVE USER MESSAGE
@@ -431,6 +504,7 @@ def chat():
             message
         )
 
+
         # ====================================================
         # DETECT MEMORIES
         # ====================================================
@@ -438,6 +512,7 @@ def chat():
         detected_memories = detect_memory(
             message
         )
+
 
         for (
             category,
@@ -469,6 +544,7 @@ def chat():
                     error
                 )
 
+
         # ====================================================
         # GET CONVERSATION HISTORY
         # ====================================================
@@ -478,16 +554,20 @@ def chat():
             limit=20
         )
 
+
         # ====================================================
         # BUILD CONVERSATION CONTEXT
         # ====================================================
 
         conversation_lines = []
 
+
         for item in history:
 
             role = item["role"]
+
             content = item["content"]
+
 
             if role == "user":
 
@@ -495,15 +575,18 @@ def chat():
                     f"User: {content}"
                 )
 
+
             elif role == "assistant":
 
                 conversation_lines.append(
                     f"JARVIS: {content}"
                 )
 
+
         conversation_text = "\n".join(
             conversation_lines
         )
+
 
         # ====================================================
         # GET LONG-TERM MEMORY
@@ -513,6 +596,7 @@ def chat():
             build_memory_context()
         )
 
+
         # ====================================================
         # JARVIS SYSTEM PROMPT
         # ====================================================
@@ -520,7 +604,7 @@ def chat():
         prompt = f"""
 You are JARVIS, a personal AI assistant.
 
-You are speaking with the user.
+You are speaking directly with the user.
 
 The user's stored long-term memories are:
 
@@ -539,6 +623,8 @@ Important rules:
 - Be helpful, intelligent, concise, and natural.
 - You may refer to the user by their remembered name
   when appropriate.
+- Do not invent personal information about the user.
+- If you are unsure about something, say so honestly.
 
 Previous conversation:
 
@@ -553,14 +639,19 @@ User:
 JARVIS:
 """
 
+
         # ====================================================
         # SEND REQUEST TO GEMINI
         # ====================================================
 
         response = client.models.generate_content(
-            model="gemini-3.5-flash-lite",
+
+            model="gemini-3.7-flash",
+
             contents=prompt
+
         )
+
 
         # ====================================================
         # GET AI RESPONSE
@@ -568,11 +659,16 @@ JARVIS:
 
         ai_response = response.text
 
+
         if not ai_response:
 
             return jsonify({
-                "error": "Gemini returned an empty response."
+
+                "error":
+                    "Gemini returned an empty response."
+
             }), 500
+
 
         # ====================================================
         # SAVE JARVIS RESPONSE
@@ -584,13 +680,16 @@ JARVIS:
             ai_response
         )
 
+
         # ====================================================
         # LOG RESPONSE
         # ====================================================
 
         print()
-        print("JARVIS:", ai_response)
+        print("JARVIS:")
+        print(ai_response)
         print()
+
 
         # ====================================================
         # RETURN RESPONSE
@@ -598,12 +697,14 @@ JARVIS:
 
         return jsonify({
 
-            "response": ai_response,
+            "response":
+                ai_response,
 
             "conversation_id":
                 conversation_id
 
         })
+
 
     except Exception as error:
 
@@ -614,10 +715,11 @@ JARVIS:
         print(error)
         print()
 
+
         return jsonify({
 
             "error":
-                "An internal server error occurred."
+                str(error)
 
         }), 500
 
@@ -642,15 +744,21 @@ def clear_conversation():
             silent=True
         )
 
+
         if not data:
 
             return jsonify({
-                "error": "Request body is required."
+
+                "error":
+                    "Request body is required."
+
             }), 400
+
 
         conversation_id = data.get(
             "conversation_id"
         )
+
 
         # ====================================================
         # VALIDATE CONVERSATION ID
@@ -659,8 +767,12 @@ def clear_conversation():
         if not conversation_id:
 
             return jsonify({
-                "error": "Conversation ID is required."
+
+                "error":
+                    "Conversation ID is required."
+
             }), 400
+
 
         # ====================================================
         # DELETE CONVERSATION
@@ -670,6 +782,7 @@ def clear_conversation():
             conversation_id
         )
 
+
         print()
         print(
             "Conversation cleared:",
@@ -677,14 +790,21 @@ def clear_conversation():
         )
         print()
 
+
         # ====================================================
         # RETURN SUCCESS
         # ====================================================
 
         return jsonify({
-            "success": True,
-            "conversation_id": conversation_id
+
+            "success":
+                True,
+
+            "conversation_id":
+                conversation_id
+
         })
+
 
     except Exception as error:
 
@@ -695,10 +815,11 @@ def clear_conversation():
         print(error)
         print()
 
+
         return jsonify({
 
             "error":
-                "An internal server error occurred."
+                str(error)
 
         }), 500
 
@@ -710,7 +831,11 @@ def clear_conversation():
 if __name__ == "__main__":
 
     app.run(
+
         debug=True,
+
         host="0.0.0.0",
+
         port=5000
+
     )

@@ -13,7 +13,7 @@ const statusText = document.getElementById("statusText");
 // ==========================================
 // FLASK BACKEND
 // ==========================================
-const API_URL = "https://jarvis-ai-g3.vercel.app";
+const API_URL = "https://jarvis-ai-23.vercel.app";
 
 const response = await fetch(
     `${API_URL}/api/chat`,
