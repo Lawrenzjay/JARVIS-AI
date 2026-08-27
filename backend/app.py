@@ -30,22 +30,19 @@ ENV_FILE = os.path.join(
     ".env"
 )
 
-load_dotenv(
-    ENV_FILE
-)
+# Load local .env for local development.
+# On Vercel, GEMINI_API_KEY should be added
+# in Vercel Environment Variables.
+load_dotenv(ENV_FILE)
 
 
 # ============================================================
 # FLASK APP
 # ============================================================
 
-app = Flask(
-    __name__
-)
+app = Flask(__name__)
 
-CORS(
-    app
-)
+CORS(app)
 
 
 # ============================================================
@@ -57,10 +54,10 @@ api_key = os.getenv(
 )
 
 if not api_key:
-
     raise RuntimeError(
         "GEMINI_API_KEY is not configured. "
-        "Please add GEMINI_API_KEY to your .env file."
+        "Add it to your .env file locally or "
+        "Vercel Environment Variables when deployed."
     )
 
 
@@ -74,11 +71,9 @@ client = genai.Client(
 # ============================================================
 
 try:
-
     initialize_database()
 
 except Exception as error:
-
     print(
         "Database initialization warning:",
         error
@@ -350,7 +345,9 @@ def build_memory_context():
     for memory in memories:
 
         category = memory["category"]
+
         key = memory["key"]
+
         value = memory["value"]
 
         memory_lines.append(
@@ -364,6 +361,40 @@ def build_memory_context():
 
 
 # ============================================================
+# ROOT
+# ============================================================
+
+@app.route(
+    "/",
+    methods=["GET"]
+)
+def home():
+
+    return jsonify({
+        "status": "online",
+        "service": "JARVIS API",
+        "message": "JARVIS backend is running."
+    })
+
+
+# ============================================================
+# API ROOT
+# ============================================================
+
+@app.route(
+    "/api",
+    methods=["GET"]
+)
+def api_home():
+
+    return jsonify({
+        "status": "online",
+        "service": "JARVIS API",
+        "message": "JARVIS backend is running."
+    })
+
+
+# ============================================================
 # HEALTH CHECK
 # ============================================================
 
@@ -374,32 +405,8 @@ def build_memory_context():
 def health():
 
     return jsonify({
-
         "status": "ok",
-
         "service": "JARVIS API"
-
-    })
-
-
-# ============================================================
-# ROOT API CHECK
-# ============================================================
-
-@app.route(
-    "/api",
-    methods=["GET"]
-)
-def api_home():
-
-    return jsonify({
-
-        "status": "online",
-
-        "service": "JARVIS API",
-
-        "message": "JARVIS backend is running."
-
     })
 
 
@@ -427,10 +434,8 @@ def chat():
         if not data:
 
             return jsonify({
-
                 "error":
                     "Request body is required."
-
             }), 400
 
 
@@ -452,20 +457,16 @@ def chat():
         if not message:
 
             return jsonify({
-
                 "error":
                     "Message cannot be empty."
-
             }), 400
 
 
         if not conversation_id:
 
             return jsonify({
-
                 "error":
                     "Conversation ID is required."
-
             }), 400
 
 
@@ -474,14 +475,26 @@ def chat():
         # ====================================================
 
         print()
-        print("========================================")
-        print("JARVIS REQUEST")
-        print("========================================")
-        print("User:", message)
+        print(
+            "========================================"
+        )
+        print(
+            "JARVIS REQUEST"
+        )
+        print(
+            "========================================"
+        )
+
+        print(
+            "User:",
+            message
+        )
+
         print(
             "Conversation:",
             conversation_id
         )
+
         print()
 
 
@@ -531,9 +544,9 @@ def chat():
                 print(
                     "Memory saved:",
                     category,
-                    "→",
+                    "->",
                     key,
-                    "→",
+                    "->",
                     value
                 )
 
@@ -616,14 +629,21 @@ Important rules:
 
 - Do not claim to remember something that is not
   contained in the memory or conversation.
+
 - If the user asks for their name and a name exists
   in memory, use it.
+
 - Do not unnecessarily mention the memory system.
+
 - Do not repeat memories unless they are relevant.
+
 - Be helpful, intelligent, concise, and natural.
+
 - You may refer to the user by their remembered name
   when appropriate.
+
 - Do not invent personal information about the user.
+
 - If you are unsure about something, say so honestly.
 
 Previous conversation:
@@ -645,11 +665,8 @@ JARVIS:
         # ====================================================
 
         response = client.models.generate_content(
-
             model="gemini-3.7-flash",
-
             contents=prompt
-
         )
 
 
@@ -663,10 +680,8 @@ JARVIS:
         if not ai_response:
 
             return jsonify({
-
                 "error":
                     "Gemini returned an empty response."
-
             }), 500
 
 
@@ -686,8 +701,12 @@ JARVIS:
         # ====================================================
 
         print()
-        print("JARVIS:")
-        print(ai_response)
+        print(
+            "JARVIS:"
+        )
+        print(
+            ai_response
+        )
         print()
 
 
@@ -709,10 +728,18 @@ JARVIS:
     except Exception as error:
 
         print()
-        print("========================================")
-        print("CHAT ERROR")
-        print("========================================")
-        print(error)
+        print(
+            "========================================"
+        )
+        print(
+            "CHAT ERROR"
+        )
+        print(
+            "========================================"
+        )
+        print(
+            str(error)
+        )
         print()
 
 
@@ -748,10 +775,8 @@ def clear_conversation():
         if not data:
 
             return jsonify({
-
                 "error":
                     "Request body is required."
-
             }), 400
 
 
@@ -767,10 +792,8 @@ def clear_conversation():
         if not conversation_id:
 
             return jsonify({
-
                 "error":
                     "Conversation ID is required."
-
             }), 400
 
 
@@ -809,10 +832,18 @@ def clear_conversation():
     except Exception as error:
 
         print()
-        print("========================================")
-        print("CLEAR ERROR")
-        print("========================================")
-        print(error)
+        print(
+            "========================================"
+        )
+        print(
+            "CLEAR ERROR"
+        )
+        print(
+            "========================================"
+        )
+        print(
+            str(error)
+        )
         print()
 
 
@@ -831,11 +862,7 @@ def clear_conversation():
 if __name__ == "__main__":
 
     app.run(
-
         debug=True,
-
         host="0.0.0.0",
-
         port=5000
-
     )
