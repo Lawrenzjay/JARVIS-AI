@@ -36,8 +36,9 @@ const statusText =
 // JARVIS BACKEND API
 // ==========================================
 
+
 const API_URL =
-    "https://jarvis-ai-23.vercel.app";
+    "https://jarvis-ai-23-pmxvk7c2u-lawrenzjays-projects.vercel.app";
 
 const CHAT_URL =
     `${API_URL}/api/chat`;
@@ -2415,37 +2416,19 @@ async function sendMessage(
             CHAT_URL
         );
 
-        const response =
-            await fetch(
-
-                CHAT_URL,
-
-                {
-
-                    method:
-                        "POST",
-
-                    headers: {
-
-                        "Content-Type":
-                            "application/json"
-
-                    },
-
-                    body:
-                        JSON.stringify({
-
-                            message:
-                                message,
-
-                            conversation_id:
-                                conversationId
-
-                        })
-
-                }
-
-            );
+        const response = await fetch(
+    CHAT_URL,
+    {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            message: message,
+            conversation_id: conversationId
+        })
+    }
+);
 
 
         let data;
